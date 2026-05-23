@@ -1,0 +1,92 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user profiles, emergency contacts, and customized safety preferences.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "emergencyContacts": {
+          "type": "array",
+          "description": "List of emergency contacts"
+        },
+        "preferences": {
+          "type": "object",
+          "description": "User specific preferences"
+        }
+      },
+      "required": ["email", "displayName", "createdAt"]
+    },
+    "Alert": {
+      "title": "Community Safety Alert",
+      "description": "Anonymous or public safety hazard reports submitted by users.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["unsafe_zone", "harassment", "suspicious_activity", "poorly_lit"] },
+        "description": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "locationName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "dangerLevel": { "type": "string", "enum": ["Low", "Medium", "High"] },
+        "upvotes": { "type": "integer" },
+        "upvotedBy": { "type": "array" }
+      },
+      "required": ["type", "description", "lat", "lng", "createdAt", "createdBy", "dangerLevel", "upvotes"]
+    },
+    "TravelLog": {
+      "title": "Travel History Log",
+      "description": "Logs of user routes, safety scores and travel status monitoring.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "origin": { "type": "string" },
+        "destination": { "type": "string" },
+        "safetyScore": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string" },
+        "routeChanges": { "type": "integer" }
+      },
+      "required": ["userId", "origin", "destination", "createdAt", "status"]
+    },
+    "AreaExperience": {
+      "title": "Community Area Experience Review",
+      "description": "Public reviews, lived safety experiences and local safety recommendations shared by the community.",
+      "type": "object",
+      "properties": {
+        "areaName": { "type": "string" },
+        "description": { "type": "string" },
+        "safetyRating": { "type": "integer" },
+        "category": { "type": "string", "enum": ["safety_tip", "well_lit_recommendation", "active_bystander", "general_review"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "upvotes": { "type": "integer" },
+        "upvotedBy": { "type": "array" }
+      },
+      "required": ["areaName", "description", "safetyRating", "category", "createdAt", "createdBy", "upvotes"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Personal profiles and preference structures"
+    },
+    "/alerts/{alertId}": {
+      "schema": "Alert",
+      "description": "Public hazard map reports"
+    },
+    "/travelHistory/{historyId}": {
+      "schema": "TravelLog",
+      "description": "Records list of journeys"
+    },
+    "/experiences/{experienceId}": {
+      "schema": "AreaExperience",
+      "description": "Crowdsourced safety reviews and area experience reports"
+    }
+  }
+}

@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Custom background animated particles or glow filters */
+@layer utilities {
+  .glass-card {
+    background: rgba(17, 24, 39, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .glass-card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .glass-card-hover:hover {
+    background: rgba(31, 41, 55, 0.85);
+    border-color: rgba(236, 72, 153, 0.3); /* Subtle pink glow outline */
+    box-shadow: 0 10px 30px -10px rgba(236, 72, 153, 0.2);
+  }
+  .glow-text {
+    text-shadow: 0 0 12px rgba(236, 72, 153, 0.4);
+  }
+  .glow-border {
+    box-shadow: 0 0 15px rgba(236, 72, 153, 0.15);
+  }
+}
+
+/* Smooth custom scrollbars for interactive tabs */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(17, 24, 39, 0.5);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(236, 72, 153, 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(236, 72, 153, 0.5);
+}

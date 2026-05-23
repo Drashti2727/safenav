@@ -1,0 +1,11 @@
+{
+  "name": "SafeNav AI",
+  "description": "A proactive safety and intelligent decision-support platform for women, focusing on risk prediction, smart safe routing, and confidence-driven control.",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

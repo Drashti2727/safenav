@@ -1,0 +1,142 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable, hardened global helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- Entity Validation Blueprints (Anti-Update-Gaps) ---
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'displayName', 'createdAt'])
+        && data.keys().size() <= 6
+        && data.email is string
+        && data.email.size() <= 256
+        && data.displayName is string
+        && data.displayName.size() <= 128;
+    }
+
+    function isValidAlert(data) {
+      return data.keys().hasAll(['type', 'description', 'lat', 'lng', 'createdAt', 'createdBy', 'dangerLevel', 'upvotes'])
+        && data.type is string
+        && (data.type == 'unsafe_zone' || data.type == 'harassment' || data.type == 'suspicious_activity' || data.type == 'poorly_lit')
+        && data.description is string
+        && data.description.size() <= 2000
+        && data.lat is number
+        && data.lng is number
+        && data.createdBy is string
+        && data.dangerLevel is string
+        && (data.dangerLevel == 'Low' || data.dangerLevel == 'Medium' || data.dangerLevel == 'High')
+        && data.upvotes is int
+        && data.upvotes >= 0;
+    }
+
+    function isValidTravel(data) {
+      return data.keys().hasAll(['userId', 'origin', 'destination', 'createdAt', 'status'])
+        && data.userId is string
+        && data.userId == request.auth.uid
+        && data.origin is string
+        && data.origin.size() <= 500
+        && data.destination is string
+        && data.destination.size() <= 500
+        && data.status is string
+        && (data.status == 'completed' || data.status == 'monitoring' || data.status == 'canceled');
+    }
+
+    function isValidExperience(data) {
+      return data.keys().hasAll(['areaName', 'description', 'safetyRating', 'category', 'createdAt', 'createdBy', 'upvotes'])
+        && data.areaName is string
+        && data.areaName.size() <= 200
+        && data.description is string
+        && data.description.size() <= 2000
+        && data.safetyRating is int
+        && data.safetyRating >= 1
+        && data.safetyRating <= 5
+        && data.category is string
+        && (data.category == 'safety_tip' || data.category == 'well_lit_recommendation' || data.category == 'active_bystander' || data.category == 'general_review')
+        && data.createdBy is string
+        && data.upvotes is int
+        && data.upvotes >= 0;
+    }
+
+    // --- Collection Routes ---
+
+    // 1. Users Profile & Settings
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().createdAt == request.time;
+      allow update: if isOwner(userId) && isValidUser(incoming()) && incoming().createdAt == existing().createdAt && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'preferences', 'emergencyContacts'])
+      );
+    }
+
+    // 2. Community Alerts (Safety Heatmap)
+    match /alerts/{alertId} {
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(alertId) && isValidAlert(incoming()) && incoming().createdAt == request.time && incoming().createdBy == request.auth.uid;
+      
+      allow update: if isSignedIn() && isValidId(alertId) && (
+        // Action: Upvote Alert (Any registered user can upvote alert)
+        (incoming().diff(existing()).affectedKeys().hasOnly(['upvotes', 'upvotedBy']) && 
+         incoming().upvotes == existing().upvotes + 1) || 
+        // Action: Edit Own Alert
+        (existing().createdBy == request.auth.uid && isValidAlert(incoming()) && incoming().createdAt == existing().createdAt && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['description', 'dangerLevel', 'type', 'reporterName']))
+      );
+      
+      allow delete: if isSignedIn() && existing().createdBy == request.auth.uid;
+    }
+
+    // 3. Smart Travel History
+    match /travelHistory/{historyId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(historyId) && isValidTravel(incoming()) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidTravel(incoming()) && incoming().createdAt == existing().createdAt && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'routeChanges'])
+      );
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // 4. Community Lived Experiences Reviews
+    match /experiences/{experienceId} {
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(experienceId) && isValidExperience(incoming()) && incoming().createdAt == request.time && incoming().createdBy == request.auth.uid;
+      
+      allow update: if isSignedIn() && isValidId(experienceId) && (
+        // Action: Upvote Experience (Any registered user can upvote experience)
+        (incoming().diff(existing()).affectedKeys().hasOnly(['upvotes', 'upvotedBy']) && 
+         incoming().upvotes == existing().upvotes + 1) || 
+        // Action: Edit Own Experience
+        (existing().createdBy == request.auth.uid && isValidExperience(incoming()) && incoming().createdAt == existing().createdAt && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['description', 'safetyRating', 'category', 'reporterName']))
+      );
+      
+      allow delete: if isSignedIn() && existing().createdBy == request.auth.uid;
+    }
+
+  }
+}
